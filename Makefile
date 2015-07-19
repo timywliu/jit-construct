@@ -1,6 +1,6 @@
-BIN = interpreter compiler-x64 compiler-arm jit0 jit
+BIN = interpreter compiler-x64 compiler-arm jit0 jit jit-a64
 
-CROSS_COMPILE = arm-linux-gnueabihf-
+CROSS_COMPILE = aarch64-linux-gnu-
 QEMU_ARM = qemu-arm -L /usr/arm-linux-gnueabihf
 
 all: $(BIN)
@@ -33,6 +33,15 @@ jit: dynasm-driver.c jit.h util.c
 jit.h: jit.dasc
 	        lua dynasm/dynasm.lua jit.dasc > jit.h
 
+jit-a64: jit-a64.c
+	$(CROSS_COMPILE)gcc -g -O2 -o $@ $<
+jit-a64.c: jit-a64.dasc
+	lua dynasm/dynasm.lua -o $@ $<
+dump-a64: jit-a64.dasc
+	lua dynasm/dynasm.lua --dumparch a64 $< >dump.a64
+qemu-a64: jit-a64
+	qemu-aarch64 -L /usr/aarch64-linux-gnu $< progs/mandelbrot.b
+
 test: test_vector test_stack
 	./test_vector && ./test_stack
 
@@ -45,4 +54,4 @@ clean:
 	$(RM) $(BIN) \
 	      hello-x64 hello-arm hello.s \
 	      test_vector test_stack \
-	      jit.h
+	      jit.h jit-a64.c
